@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LectureAI - Video to Lecture Transcripts & Smart Notes</title>
+  <meta name="description" content="Convert video lectures into clean, filter-free transcripts and structured study notes with Google Gemini AI.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="/css/style.css">
+
+  <!-- Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <i class="fas fa-brain"></i>
+      </div>
+      <div class="brand-text">
+        <h1>LectureAI</h1>
+      </div>
+      <span class="brand-badge">Gemini 3.5</span>
+    </a>
+
+    <div class="nav-actions">
+      <div class="system-status">
+        <span class="status-dot"></span>
+        <span>AI Engine Ready</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <div class="app-container">
+
+    <!-- Left Sidebar: Lecture Library -->
+    <aside class="sidebar">
+      <div class="library-card">
+        <div class="library-header">
+          <h2><i class="fas fa-books"></i> Lecture Library</h2>
+          <span class="lecture-count" id="lecture-count">0</span>
+        </div>
+
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" id="search-input" placeholder="Search lectures...">
+        </div>
+
+        <div class="lecture-list" id="lecture-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- Media Ingestion (Upload & YouTube) -->
+      <section class="ingest-card">
+        <div class="ingest-tabs">
+          <button class="tab-btn active" data-tab="upload">
+            <i class="fas fa-cloud-upload-alt"></i> Upload Video / Audio
+          </button>
+          <button class="tab-btn" data-tab="youtube">
+            <i class="fab fa-youtube"></i> Ingest from YouTube
+          </button>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="tab-upload">
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="file-input" style="display: none;" accept="video/*,audio/*,.mkv,.mp4,.mov,.webm,.avi,.mp3,.wav,.m4a,.flac">
+            <div class="dropzone-icon">
+              <i class="fas fa-file-video"></i>
+            </div>
+            <div class="dropzone-title">Drag & drop your lecture video or audio here</div>
+            <div class="dropzone-desc">Supports MP4, WebM, MKV, MOV, MP3, WAV, M4A up to 500MB</div>
+            <div class="file-selected-badge" id="file-badge">
+              <i class="fas fa-check-circle" style="color: var(--accent-emerald);"></i>
+              <span id="file-name">filename.mp4</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <input type="text" class="input-field" id="lecture-title-input" placeholder="Lecture Title (optional, defaults to filename)">
+            <button class="btn-primary" id="upload-btn" disabled>
+              <i class="fas fa-sparkles"></i> Process Lecture
+            </button>
+          </div>
+        </div>
+
+        <!-- YouTube Ingest Tab -->
+        <div id="tab-youtube" style="display: none;">
+          <div style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+            Paste any YouTube lecture link. Audio will be automatically extracted, cleaned, and summarized into notes.
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <input type="url" class="input-field" id="yt-url-input" placeholder="https://www.youtube.com/watch?v=...">
+            <div class="form-row" style="margin-top: 0;">
+              <input type="text" class="input-field" id="yt-title-input" placeholder="Custom Title (optional)">
+              <button class="btn-primary" id="yt-btn">
+                <i class="fab fa-youtube"></i> Fetch & Process Video
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Pipeline Stepper Banner (shown when active) -->
+      <section class="pipeline-progress-card" id="pipeline-progress-card">
+        <div class="progress-header">
+          <div class="progress-title">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <span id="pipeline-title">Processing Lecture...</span>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-family: var(--font-mono);">Live Updates</span>
+        </div>
+
+        <div class="progress-steps">
+          <div class="step-item" id="step-upload">
+            <span class="step-indicator">1</span>
+            <span>1. Media Ingestion</span>
+          </div>
+          <div class="step-item" id="step-transcribe">
+            <span class="step-indicator">2</span>
+            <span>2. Speech-to-Text</span>
+          </div>
+          <div class="step-item" id="step-filter">
+            <span class="step-indicator">3</span>
+            <span>3. Filter Verbal Clutter</span>
+          </div>
+          <div class="step-item" id="step-notes">
+            <span class="step-indicator">4</span>
+            <span>4. Generate Notes</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lecture Viewer & Study Workspace -->
+      <section class="viewer-card" id="viewer-card">
+        <!-- Viewer Header -->
+        <div class="viewer-header">
+          <div class="viewer-title-group">
+            <h2 id="viewer-title">Select or upload a lecture</h2>
+            <div class="viewer-meta">
+              <span id="viewer-source"><i class="fas fa-info-circle"></i> Waiting for selection</span>
+              <span>•</span>
+              <span id="viewer-date">--</span>
+              <span class="status-pill status-completed" id="viewer-status" style="display: none;">Ready</span>
+            </div>
+          </div>
+
+          <div class="viewer-actions">
+            <button class="btn-secondary" id="copy-notes-btn" title="Copy markdown notes to clipboard">
+              <i class="fas fa-copy"></i> Copy Notes
+            </button>
+            <button class="btn-secondary" id="download-notes-btn" title="Download as .md file">
+              <i class="fas fa-download"></i> Download .md
+            </button>
+            <button class="btn-secondary" id="refine-notes-btn" title="Re-generate notes with custom prompt">
+              <i class="fas fa-sliders-h"></i> Refine Notes
+            </button>
+          </div>
+        </div>
+
+        <!-- Viewer Navigation Tabs -->
+        <div class="viewer-nav">
+          <button class="viewer-tab-btn active" data-view="notes">
+            <i class="fas fa-book-open"></i> Study Notes
+          </button>
+          <button class="viewer-tab-btn" data-view="filtered">
+            <i class="fas fa-filter"></i> Filtered Transcript
+          </button>
+          <button class="viewer-tab-btn" data-view="raw">
+            <i class="fas fa-align-left"></i> Raw Transcript
+          </button>
+          <button class="viewer-tab-btn" data-view="concepts">
+            <i class="fas fa-lightbulb"></i> Key Concepts
+          </button>
+          <button class="viewer-tab-btn" data-view="flashcards">
+            <i class="fas fa-layer-group"></i> Quiz & Flashcards
+          </button>
+        </div>
+
+        <!-- Viewer Body -->
+        <div class="viewer-body" id="viewer-body">
+          <div class="empty-state">
+            <i class="fas fa-sparkles" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent-primary); opacity: 0.7;"></i>
+            <h3>Turn Your Lectures Into Masterclass Notes</h3>
+            <p style="max-width: 480px; margin: 0.5rem auto 0; color: var(--text-secondary);">
+              Upload an audio/video recording or paste a YouTube lecture URL above. 
+              Our AI pipeline will extract the audio, transcribe dialogue with timestamps, remove all verbal clutter, and synthesize deep structured study materials.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Refine Notes Modal -->
+  <div class="modal-overlay" id="refine-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i class="fas fa-sliders-h"></i> Refine Lecture Notes</h3>
+        <button class="modal-close" id="close-refine-btn"><i class="fas fa-times"></i></button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+            Special Focus / Instructions:
+          </label>
+          <input type="text" class="input-field" id="refine-focus-input" placeholder="e.g. Focus on mathematical proofs, code examples, or exam cram...">
+        </div>
+        <div>
+          <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+            Formatting Depth:
+          </label>
+          <select class="input-field" id="refine-style-select">
+            <option value="comprehensive">Comprehensive (Deep Dive, Formulas, Full Takeaways)</option>
+            <option value="quick_review">Quick Review (High-Level Bullet Points)</option>
+            <option value="exam_cram">Exam Cram (High-Yield Definitions & Questions)</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button class="btn-primary" id="submit-refine-btn">
+            <i class="fas fa-redo"></i> Regenerate Notes
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- App Script -->
+  <script src="/js/app.js"></script>
+</body>
+</html>

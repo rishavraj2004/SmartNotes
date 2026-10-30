@@ -1,0 +1,15 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic[email]
+pydantic-settings
+bcrypt
+pyjwt
+psycopg2-binary   # remove if only using SQLite
+alembic
+python-multipart
+google-genai
+yt-dlp
+aiofiles
+imageio-ffmpeg
